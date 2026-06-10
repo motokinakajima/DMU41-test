@@ -76,11 +76,11 @@ class DMU41Parser:
 
             body = int.from_bytes(value, byteorder='big')
             match key:
-                case 0x03: return_body["error codes"].extend(self._error_flagger(body, 1))
-                case 0x04: return_body["error codes"].extend(self._error_flagger(body, 17))
-                case 0x05: return_body["error codes"].extend(self._error_flagger(body, 33))
-                case 0x06: return_body["error codes"].extend(self._error_flagger(body, 49))
-                case 0x07: return_body["error codes"].extend(self._error_flagger(body, 65))
+                case 0x03: return_body["error codes"].extend(self._error_flagger(body, base_index=1))
+                case 0x04: return_body["error codes"].extend(self._error_flagger(body, base_index=17))
+                case 0x05: return_body["error codes"].extend(self._error_flagger(body, base_index=33))
+                case 0x06: return_body["error codes"].extend(self._error_flagger(body, base_index=49))
+                case 0x07: return_body["error codes"].extend(self._error_flagger(body, base_index=65))
         
         checksum = int.from_bytes(packet[2+self.body_size:2+self.body_size+2], byteorder='big')
         return_body["checksum"] = checksum
