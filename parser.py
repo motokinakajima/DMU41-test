@@ -85,6 +85,8 @@ class DMU41Parser:
         checksum = int.from_bytes(packet[2+self.body_size:2+self.body_size+2], byteorder='big')
         return_body["checksum"] = checksum
 
+        return return_body
+
     def _return_essential_data(self, data):
         return_data = {
             "error codes": data["error codes"],
@@ -107,3 +109,37 @@ class DMU41Parser:
             if raw_data & (1 << i):
                 error_flags.append(base_index + i)
         return error_flags
+    
+
+if __name__ == "__main__":
+    parser = DMU41Parser()
+    test_buffer = [
+        0x55, 0xAA,               # Header (2バイト)
+        0x00, 0x26,               # Count (2バイト: 38バイトのBody長という想定)
+        
+        # --- ここから Body (38バイト) ---
+        0x00, 0x01,               # 0x01: BIT Start up = 1
+        0x00, 0x02,               # 0x02: BIT Operational = 2
+        0x00, 0x11,               # 0x03: Error (1-16) -> 0x11は 1番目と5番目のビットが1！
+        0x00, 0x00,               # 0x04: Error (17-32) -> エラーなし
+        0x00, 0x00,               # 0x05: Error (33-48) -> エラーなし
+        0x00, 0x00,               # 0x06: Error (49-64) -> エラーなし
+        0x00, 0x00,               # 0x07: Error (65-80) -> エラーなし
+        
+        0x3F, 0x80, 0x00, 0x00,   # 0x20: X Gyro (Float) -> 1.0 になるビット列
+        0xBF, 0x80, 0x00, 0x00,   # 0x21: Y Gyro (Float) -> -1.0 になるビット列
+        0x00, 0x00, 0x00, 0x00,   # 0x22: Z Gyro (Float) -> 0.0 になるビット列
+        
+        0x41, 0x1C, 0xCC, 0xCD,   # 0x29: X Accel (Float) -> 約 9.8 になるビット列
+        0x3F, 0x00, 0x00, 0x00,   # 0x2A: Y Accel (Float) -> 0.5 になるビット列
+        0xC1, 0x1C, 0xCC, 0xCD,   # 0x2B: Z Accel (Float) -> 約 -9.8 になるビット列
+        
+        # --- ここまで Body ---
+        
+        0x12, 0x34                # Checksum (2バイト)
+    ]
+
+    for byte in test_buffer:
+        result = parser.parse_byte_essential(byte)
+        if result is not None:
+            print("Parsed Data:", result)
