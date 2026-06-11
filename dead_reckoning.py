@@ -10,6 +10,8 @@ class deadReckoning:
         self.acceleration = np.array([0.0, 0.0, 0.0]) # ax, ay, az, global
         self.quaternion = quaternion.one
 
+        self.angle = np.array([0.0, 0.0, 0.0]) # wx, wy, wz, global
+
         self.prev_position = np.array([0.0, 0.0, 0.0]) # x, y, z, global
         self.prev_velocity = np.array([0.0, 0.0, 0.0]) # vx, vy, vz, global
         self.prev_acceleration = np.array([0.0, 0.0, 0.0]) # ax, ay, az, global
@@ -19,9 +21,12 @@ class deadReckoning:
         local_acceleration = np.array([data["linear acceleration"]["x"], data["linear acceleration"]["y"], data["linear acceleration"]["z"]])
         local_omega = np.array([data["angular rates"]["x"], data["angular rates"]["y"], data["angular rates"]["z"]])
 
-        rotation = quaternion.from_rotation_vector(local_omega * dt)
-        self.quaternion = 0.5*(self.quaternion + self.prev_quaternion) * rotation
-        self.acceleration = quaternion.rotate_vectors(rotation, local_acceleration) - self.default_acceleration
+        delta_rotation = quaternion.from_rotation_vector(local_omega * dt)
+        self.quaternion = self.quaternion * delta_rotation
+
+        self.acceleration = quaternion.rotate_vectors(self.quaternion, local_acceleration)
+        self.acceleration += self.default_acceleration
+
         self.velocity += 0.5*(self.acceleration + self.prev_acceleration) * dt
         self.position += 0.5*(self.velocity + self.prev_velocity) * dt
         self.angle += local_omega * dt
