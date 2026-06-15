@@ -2,14 +2,14 @@ import struct
 
 class DMU41Parser:
     _message_body_dict_length = {
-        0x01: 2, # built in test start up
-        0x02: 2, # built in test operational
+        #0x01: 2, # built in test start up
+        #0x02: 2, # built in test operational
 
-        0x03: 2, # Error indication flags
-        0x04: 2,
-        0x05: 2,
-        0x06: 2,
-        0x07: 2,
+        #0x03: 2, # Error indication flags
+        #0x04: 2,
+        #0x05: 2,
+        #0x06: 2,
+        #0x07: 2,
 
         0x20: 4, # X angular rate
         0x21: 4, # Y angular rate
