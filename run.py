@@ -3,6 +3,7 @@ import argparse
 import csv
 import serial
 import time
+import numpy as np
 from pathlib import Path
 
 from dead_reckoning import deadReckoning as DeadReckoning
@@ -22,7 +23,7 @@ class DMU41:
             timeout=0,
         )
 
-        self._dead_reckoning = DeadReckoning()
+        self._dead_reckoning = DeadReckoning(angular_bias=np.array([0.0, 0.0, 0.0]))
         self._parser = DMU41Parser()
         self._prev_print_time = time.time()
         self._csv_path = Path(csv_path) if csv_path else None
@@ -41,6 +42,14 @@ class DMU41:
             self._csv_writer.writeheader()
 
     def close(self):
+        # シリアルポートが開いていたら、ちゃんと閉じる（ここを追加！）
+        if hasattr(self, '_serial_port') and self._serial_port is not None:
+            try:
+                self._serial_port.close()
+                print("[INFO] シリアルポートを正常にクローズしました。")
+            except Exception as e:
+                print(f"[WARNING] シリアルポートのクローズ中にエラー: {e}")
+
         if self._csv_file is not None:
             self._csv_file.close()
 
@@ -92,11 +101,22 @@ class DMU41:
             self._update_period,
         )
 
-    def run(self):
+    def run(self, duration=None):
+        """
+        duration: 実験時間（秒）。None の場合は Ctrl+C まで無限に回る
+        """
+        start_time = time.time()
+        self._prev_print_time = start_time
         try:
             while True:
                 self.update_reading()
                 now = time.time()
+                
+                # タイマー判定：指定秒数が経過したらループを抜ける
+                if duration is not None and (now - start_time) >= duration:
+                    print(f"\n[INFO] 設定時間（{duration}秒）に達したため、このトライアルを終了します。")
+                    break
+                    
                 if now - self._prev_print_time >= self._publish_period:
                     self._print_state()
                     self._prev_print_time = now
@@ -105,22 +125,52 @@ class DMU41:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="DMU41 serial reader")
+    parser = argparse.ArgumentParser(description="DMU41 serial reader with Auto-Timer & Multi-Trials")
     parser.add_argument("--port", default="/dev/ttyUSB0")
     parser.add_argument("--baudrate", type=int, default=921600)
     parser.add_argument("--output-hz", type=float, default=20.0)
     parser.add_argument("--update-hz", type=float, default=1000.0)
-    parser.add_argument("--csv", dest="csv_path", default=None, help="CSV output path")
+    
+    # 拡張した引数
+    parser.add_argument("--prefix", default="trial", help="CSV出力のファイル名接頭辞 (e.g. 'trial' -> 'trial_001.csv')")
+    parser.add_argument("--duration", type=float, default=60.0, help="1回あたりの実験時間（秒）。0を指定すると無限")
+    parser.add_argument("--num-trials", type=int, default=3, help="実行するトライアルの総数")
     args = parser.parse_args()
 
-    imu = DMU41(
-        port=args.port,
-        baudrate=args.baudrate,
-        output_hz=args.output_hz,
-        update_hz=args.update_hz,
-        csv_path=args.csv_path,
-    )
-    imu.run()
+    # duration が 0 以下の場合は無限ループ（従来通り）として扱う
+    run_duration = args.duration if args.duration > 0 else None
+
+    for trial_idx in range(1, args.num_trials + 1):
+        # 3桁のゼロパディング（trial_001.csv, trial_002.csv ...）で自動生成
+        csv_filename = f"{args.prefix}{trial_idx:03d}.csv"
+        
+        print("\n" + "="*60)
+        print(f" トライアル開始 [{trial_idx} / {args.num_trials}]")
+        print(f" 保存先ファイル: {csv_filename}")
+        print(f" 計測時間: {args.duration if run_duration else '無限'} 秒")
+        print("="*60)
+        
+        # 連続実験のときに、ちょっとIMUを置き直したり準備したりするインターバル
+        if trial_idx > 1:
+            print("次の実験の準備をしてください（IMUを完全に静止させてください）。")
+            print("3秒後に自動で計測を開始します...")
+            time.sleep(3)
+        else:
+            print("IMUを静止させてください。1秒後に開始します...")
+            time.sleep(1)
+
+        # 毎回新しくインスタンスを作ることで、内部のDeadReckoningインスタンスもリセットされる
+        imu = DMU41(
+            port=args.port,
+            baudrate=args.baudrate,
+            output_hz=args.output_hz,
+            update_hz=args.update_hz,
+            csv_path=csv_filename,
+        )
+        
+        imu.run(duration=run_duration)
+        
+    print("\n[SUCCESS] すべての自動トライアルが正常に終了しました！")
 
 
 if __name__ == '__main__':
