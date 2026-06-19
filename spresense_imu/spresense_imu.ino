@@ -13,17 +13,15 @@ void setup() {
   
   int init_ret = board_cxd5602pwbimu_initialize(5);
   if (init_ret < 0) {
-    Serial.println("ERROR: Failed to initialize CXD5602PWBIMU.");
     while(1);
   }
 
   imu_fd = open("/dev/imu0", O_RDONLY);
   if (imu_fd < 0) {
-    Serial.println("CRITICAL: Failed to open /dev/imu0.");
     while(1); 
   }
   
-  ioctl(imu_fd, SNIOC_SSAMPRATE, 1920); // 1920Hz
+  ioctl(imu_fd, SNIOC_SSAMPRATE, 120);
   
   cxd5602pwbimu_range_t range;
   range.accel = 2;    
@@ -51,6 +49,12 @@ void loop() {
     Serial.print(imu_data.gy, 5);
     Serial.print(",");
     Serial.print(imu_data.gz, 5);
+    Serial.print(",");
+    Serial.print(imu_data.ax, 5);
+    Serial.print(",");
+    Serial.print(imu_data.ay, 5);
+    Serial.print(",");
+    Serial.print(imu_data.az, 5);
     Serial.print(",");
     Serial.println(imu_data.temp, 2);
 
