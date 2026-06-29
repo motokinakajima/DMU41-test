@@ -12,7 +12,7 @@ DEFAULT_BAUDRATE = 921600
 BUFFER_SIZE = 16384  # 16KB buffer size for safety and SD protection
 
 # Custom fixed symlinks for your udev rules
-PORT_DMU = "COM5"
+PORT_DMU = "/dev/imu_dmu"
 PORT_SPRESENSE = "/dev/imu_spresense"
 PORT_BNO = "/dev/imu_bno"
 
@@ -70,8 +70,8 @@ def main():
     parser = argparse.ArgumentParser(description="3 IMU Multi-process Datalogger (ASCII Pure)")
     parser.add_argument('--name', type=str, default="", help="Optional name for the trial folder")
     parser.add_argument('--timer', type=int, default=120, help="Execution timer in minutes. Default is 120")
-    parser.add_argument('--freq_dmu', type=int, default=100, help="DMU sampling frequency (Hz)")
-    parser.add_argument('--freq_spre', type=int, default=100, help="Spresense sampling frequency (Hz)")
+    parser.add_argument('--freq_dmu', type=int, default=1000, help="DMU sampling frequency (Hz)")
+    parser.add_argument('--freq_spre', type=int, default=120, help="Spresense sampling frequency (Hz)")
     parser.add_argument('--freq_bno', type=int, default=100, help="BNO sampling frequency (Hz)")
     parser.add_argument('--notes', type=str, default="None provided.", help="Optional field notes for readme.md")
     parser.add_argument('--baudrate', type=int, default=DEFAULT_BAUDRATE, help="Serial baudrate")
@@ -131,8 +131,8 @@ def main():
 
     print("Launching all logger subprocesses concurrently...")
     p_dmu.start()
-    #p_spre.start()
-    #p_bno.start()
+    p_spre.start()
+    p_bno.start()
 
 
 
