@@ -71,7 +71,7 @@ def main():
     parser.add_argument('--name', type=str, default="", help="Optional name for the trial folder")
     parser.add_argument('--timer', type=int, default=120, help="Execution timer in minutes. Default is 120")
     parser.add_argument('--freq_dmu', type=int, default=1000, help="DMU sampling frequency (Hz)")
-    parser.add_argument('--freq_spre', type=int, default=120, help="Spresense sampling frequency (Hz)")
+    parser.add_argument('--freq_spre', type=int, default=960, help="Spresense sampling frequency (Hz)")
     parser.add_argument('--freq_bno', type=int, default=100, help="BNO sampling frequency (Hz)")
     parser.add_argument('--notes', type=str, default="None provided.", help="Optional field notes for readme.md")
     parser.add_argument('--baudrate', type=int, default=DEFAULT_BAUDRATE, help="Serial baudrate")

@@ -21,7 +21,7 @@ void setup() {
     while(1); 
   }
   
-  ioctl(imu_fd, SNIOC_SSAMPRATE, 120);
+  ioctl(imu_fd, SNIOC_SSAMPRATE, 960);
   
   cxd5602pwbimu_range_t range;
   range.accel = 2;    
