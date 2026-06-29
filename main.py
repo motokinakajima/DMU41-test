@@ -22,15 +22,11 @@ CSV_HEADER = b"micros,step,gx,gy,gz,ax,ay,az,temp\n"
 # ==========================================
 # 2. Worker Process (Data Logging Core)
 # ==========================================
-def logger_worker(port, baudrate, filepath, stop_event, buffer_size, header=None):
+def logger_worker(port, baudrate, filepath, stop_event, record_event, buffer_size, header=None):
     try:
         with serial.Serial(
-            port=port,
-            baudrate=baudrate,
-            bytesize=serial.EIGHTBITS,
-            parity=serial.PARITY_NONE,
-            stopbits=serial.STOPBITS_ONE,
-            timeout=0
+            port=port, baudrate=baudrate, bytesize=serial.EIGHTBITS,
+            parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=0
         ) as ser, open(filepath, 'wb') as f:
             
             if header:
@@ -44,12 +40,17 @@ def logger_worker(port, baudrate, filepath, stop_event, buffer_size, header=None
                     waiting = ser.in_waiting
                     if waiting > 0:
                         data = ser.read(waiting)
-                        buffer.extend(data)
                         
-                        if len(buffer) >= buffer_size:
-                            f.write(buffer)
-                            f.flush()
-                            buffer.clear()
+                        if record_event.is_set():
+                            buffer.extend(data)
+                            
+                            if len(buffer) >= buffer_size:
+                                f.write(buffer)
+                                f.flush()
+                                buffer.clear()
+                        else:
+                            pass
+                        # ---------------
                     else:
                         time.sleep(0.001)
                         
@@ -122,19 +123,19 @@ def main():
 
     # --- Multi-processing Initialization ---
     stop_event = multiprocessing.Event()
+    record_event = multiprocessing.Event()  # 追加：記録開始の合図用
     
-    # Explicit process assignment for absolute code readability and friendliness
     p_dmu = multiprocessing.Process(
         target=logger_worker, 
-        args=(PORT_DMU, args.baudrate, file_dmu, stop_event, BUFFER_SIZE, None)
+        args=(PORT_DMU, args.baudrate, file_dmu, stop_event, record_event, BUFFER_SIZE, None)
     )
     p_spre = multiprocessing.Process(
         target=logger_worker, 
-        args=(PORT_SPRESENSE, args.baudrate, file_spre, stop_event, BUFFER_SIZE, CSV_HEADER)
+        args=(PORT_SPRESENSE, args.baudrate, file_spre, stop_event, record_event, BUFFER_SIZE, CSV_HEADER)
     )
     p_bno = multiprocessing.Process(
         target=logger_worker, 
-        args=(PORT_BNO, args.baudrate, file_bno, stop_event, BUFFER_SIZE, CSV_HEADER)
+        args=(PORT_BNO, args.baudrate, file_bno, stop_event, record_event, BUFFER_SIZE, CSV_HEADER)
     )
 
     print("Launching all logger subprocesses concurrently...")
@@ -142,6 +143,14 @@ def main():
     p_spre.start()
     p_bno.start()
 
+    # --- Serial Warmup ---
+    WARMUP_SECONDS = 5
+    print(f"[INFO] Letting sensors boot and stabilize for {WARMUP_SECONDS} seconds...")
+    time.sleep(WARMUP_SECONDS)
+    
+    # --- Synced Recording ---
+    print("[INFO] GO! Signaling all processes to start recording.")
+    record_event.set()
 
 
     # --- Main Timer Loop ---

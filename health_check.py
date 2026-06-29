@@ -23,14 +23,6 @@ def main():
                 baudrate=cfg["baud"],
                 timeout=0  # Non-blocking mode
             )
-            
-            if name == "SPRE":
-                serials[name].dtr = False
-                serials[name].rts = False
-                time.sleep(0.1)
-                serials[name].dtr = True
-                serials[name].rts = True
-                time.sleep(0.1)
                 
             print(f"[ OK ] Opened {name} on {cfg['path']}")
         except Exception as e:
