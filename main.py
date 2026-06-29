@@ -60,6 +60,14 @@ def logger_worker(port, baudrate, filepath, stop_event, buffer_size, header=None
                 f.write(buffer)
                 f.flush()
                 
+            try:
+                ser.cancel_read()
+                ser.reset_input_buffer()
+                ser.reset_output_buffer()
+                time.sleep(0.1)
+            except Exception:
+                pass
+                
     except Exception as e:
         print(f"\n[ERROR] Problem detected on port {port}: {e}")
 
