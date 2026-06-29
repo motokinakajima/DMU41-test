@@ -40,23 +40,25 @@ void loop() {
   if (ret == sizeof(imu_data)) {
     unsigned long timestamp = micros();
 
-    Serial.print(timestamp);
-    Serial.print(",");
-    Serial.print(packet_counter);
-    Serial.print(",");
-    Serial.print(imu_data.gx, 5);
-    Serial.print(",");
-    Serial.print(imu_data.gy, 5);
-    Serial.print(",");
-    Serial.print(imu_data.gz, 5);
-    Serial.print(",");
-    Serial.print(imu_data.ax, 5);
-    Serial.print(",");
-    Serial.print(imu_data.ay, 5);
-    Serial.print(",");
-    Serial.print(imu_data.az, 5);
-    Serial.print(",");
-    Serial.println(imu_data.temp, 2);
+    if (Serial) {
+      Serial.print(timestamp);
+      Serial.print(",");
+      Serial.print(packet_counter);
+      Serial.print(",");
+      Serial.print(imu_data.gx, 5);
+      Serial.print(",");
+      Serial.print(imu_data.gy, 5);
+      Serial.print(",");
+      Serial.print(imu_data.gz, 5);
+      Serial.print(",");
+      Serial.print(imu_data.ax, 5);
+      Serial.print(",");
+      Serial.print(imu_data.ay, 5);
+      Serial.print(",");
+      Serial.print(imu_data.az, 5);
+      Serial.print(",");
+      Serial.println(imu_data.temp, 2);
+    }
 
     packet_counter++;
   }
