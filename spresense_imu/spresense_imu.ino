@@ -40,7 +40,7 @@ void loop() {
   if (ret == sizeof(imu_data)) {
     unsigned long timestamp = micros();
 
-    if (Serial) {
+    if (Serial && Serial.availableForWrite() > 80) {
       Serial.print(timestamp);
       Serial.print(",");
       Serial.print(packet_counter);
