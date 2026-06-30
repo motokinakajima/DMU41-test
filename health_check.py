@@ -25,6 +25,10 @@ def main():
             ser.timeout = 0
             ser.open()
             
+            ser.dtr = False
+            time.sleep(0.1)
+            ser.dtr = True
+            
             serials[name] = ser
                 
             print(f"[ OK ] Opened {name} on {cfg['path']}")
