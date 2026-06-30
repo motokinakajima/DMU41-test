@@ -24,10 +24,16 @@ CSV_HEADER = b"micros,step,gx,gy,gz,ax,ay,az,temp\n"
 # ==========================================
 def logger_worker(port, baudrate, filepath, stop_event, record_event, buffer_size, header=None):
     try:
-        with serial.Serial(
-            port=port, baudrate=baudrate, bytesize=serial.EIGHTBITS,
-            parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=0
-        ) as ser, open(filepath, 'wb') as f:
+        ser = serial.Serial()
+        ser.port = port
+        ser.baudrate = baudrate
+        ser.bytesize = serial.EIGHTBITS
+        ser.parity = serial.PARITY_NONE
+        ser.stopbits = serial.STOPBITS_ONE
+        ser.timeout = 0
+        ser.dtr = False
+        ser.rts = False
+        with ser, open(filepath, 'wb') as f:
             
             if header:
                 f.write(header)

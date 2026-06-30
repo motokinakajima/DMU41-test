@@ -18,11 +18,15 @@ def main():
     # 1. Initialize and open all ports safely
     for name, cfg in PORTS.items():
         try:
-            serials[name] = serial.Serial(
-                port=cfg["path"],
-                baudrate=cfg["baud"],
-                timeout=0  # Non-blocking mode
-            )
+            ser = serial.Serial()
+            ser.port = cfg["path"]
+            ser.baudrate = cfg["baud"]
+            ser.timeout = 0  # Non-blocking mode
+            ser.dtr = False  # ★ これが必須！
+            ser.rts = False  # ★ これも必須！
+            ser.open()
+            
+            serials[name] = ser
                 
             print(f"[ OK ] Opened {name} on {cfg['path']}")
         except Exception as e:
