@@ -17,6 +17,8 @@ class DMU41Parser:
         0x29: 4, # X linear acceleration
         0x2A: 4, # Y linear acceleration
         0x2B: 4, # Z linear acceleration
+        
+        0x4d: 4, # Housing temperature
     }
         
     def __init__(self):
@@ -100,6 +102,7 @@ class DMU41Parser:
                 "y": data["data"].get(0x2A, None),
                 "z": data["data"].get(0x2B, None),
             },
+            "housing temperature": data["data"].get(0x4d, None),
         }
         return return_data
 
@@ -109,6 +112,29 @@ class DMU41Parser:
             if raw_data & (1 << i):
                 error_flags.append(base_index + i)
         return error_flags
+
+class SimplifiedDMU41Parser(DMU41Parser): # skips error codes and checksum
+    def __init__(self):
+        super().__init__()
+        
+    def _parse_packet(self, packet):
+        return_body = {
+            "error codes": [],
+            "data": {},
+            "checksum": None
+        }
+        
+        gx, gy, gz, ax, ay, az, temp = struct.unpack('>fffffff', packet[2:2+self.body_size])
+        
+        return_body["data"][0x20] = gx
+        return_body["data"][0x21] = gy
+        return_body["data"][0x22] = gz
+        return_body["data"][0x29] = ax
+        return_body["data"][0x2A] = ay
+        return_body["data"][0x2B] = az
+        return_body["data"][0x4d] = temp
+        
+        return return_body
     
 
 if __name__ == "__main__":
