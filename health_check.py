@@ -1,7 +1,6 @@
 import serial
 import time
 import sys
-import subprocess
 
 # Configuration for the IMU ports
 PORTS = {
@@ -19,14 +18,11 @@ def main():
     # 1. Initialize and open all ports safely
     for name, cfg in PORTS.items():
         try:
-            subprocess.run(["stty", "-F", cfg["path"], "-hupcl"], capture_output=True)
             
             ser = serial.Serial()
             ser.port = cfg["path"]
             ser.baudrate = cfg["baud"]
-            ser.timeout = 0  # Non-blocking mode
-            ser.dtr = False  # ★ これが必須！
-            ser.rts = False  # ★ これも必須！
+            ser.timeout = 0
             ser.open()
             
             serials[name] = ser
