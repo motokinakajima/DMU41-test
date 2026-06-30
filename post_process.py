@@ -21,11 +21,49 @@ def main():
     # 1. DMU Binary Parser (Placeholder)
     # ==========================================
     # TODO: Implement your custom DMU binary parser here
-    # The output df_dmu must contain 'elapsed_sec' and data columns.
+    # The output df_dmu must contain 'elapsed_us' and data columns.
     # df_dmu = parse_dmu(dmu_path)
     
     # Temporary empty DataFrame for compilation/testing fallback
-    df_dmu = pd.DataFrame(columns=['elapsed_sec', 'gx_dmu', 'gy_dmu', 'gz_dmu', 'ax_dmu', 'ay_dmu', 'az_dmu', 'temp_dmu'])
+    # df_dmu = pd.DataFrame(columns=['elapsed_us', 'gx_dmu', 'gy_dmu', 'gz_dmu', 'ax_dmu', 'ay_dmu', 'az_dmu', 'temp_dmu'])
+    
+    if os.path.exists(dmu_path):
+        with open(dmu_path, 'rb') as f:
+            binary_data = f.read()
+            
+        us, gx, gy, gz, ax, ay, az, temp = [], [], [], [], [], [], [], []
+        
+        p = SimplifiedDMU41Parser()
+        
+        time_us = 0
+        
+        for byte in tqdm(binary_data, desc="Parsing DMU Binary Data", unit="byte"):
+            row = p.parse_byte_essential(byte)
+            if row is not None:
+                us.append(time_us)
+                gx.append(row['angular rates']['x'])
+                gy.append(row['angular rates']['y'])
+                gz.append(row['angular rates']['z'])
+                ax.append(row['linear accelerations']['x'])
+                ay.append(row['linear accelerations']['y'])
+                az.append(row['linear accelerations']['z'])
+                temp.append(row['housing temperature'])
+                time_us += 1000 # 1000Hz sampling rate
+                
+        df_dmu = pd.DataFrame({
+            'elapsed_us': us,
+            'gx_dmu': gx,
+            'gy_dmu': gy,
+            'gz_dmu': gz,
+            'ax_dmu': ax,
+            'ay_dmu': ay,
+            'az_dmu': az,
+            'temp_dmu': temp
+        })
+                
+    else:
+        # Fallback if file is missing
+        df_dmu = pd.DataFrame(columns=['elapsed_us', 'gx_dmu', 'gy_dmu', 'gz_dmu', 'ax_dmu', 'ay_dmu', 'az_dmu', 'temp_dmu'])
     pbar.update(1)
 
     # ==========================================
@@ -33,21 +71,21 @@ def main():
     # ==========================================
     if os.path.exists(spresense_path):
         df_spre = pd.read_csv(spresense_path)
-        df_spre = df_spre.iloc[1:].reset_index(drop=True)
+        df_spre = df_spre.iloc[1:-1].reset_index(drop=True)
         
         df_spre['micros_diff'] = df_spre['micros'].diff()
         df_spre.loc[df_spre['micros_diff'] < 0, 'micros_diff'] += 4294967296
         df_spre['micros_diff'] = df_spre['micros_diff'].fillna(0)
-        df_spre['elapsed_sec'] = df_spre['micros_diff'].cumsum() / 1000000.0
+        df_spre['elapsed_us'] = df_spre['micros_diff'].cumsum().astype(int)
         
         df_spre = df_spre.rename(columns={  # type: ignore
             'gx': 'gx_spre', 'gy': 'gy_spre', 'gz': 'gz_spre',
             'ax': 'ax_spre', 'ay': 'ay_spre', 'az': 'az_spre',
             'temp': 'temp_spre'
         })
-        df_spre = df_spre[['elapsed_sec', 'gx_spre', 'gy_spre', 'gz_spre', 'ax_spre', 'ay_spre', 'az_spre', 'temp_spre']]
+        df_spre = df_spre[['elapsed_us', 'gx_spre', 'gy_spre', 'gz_spre', 'ax_spre', 'ay_spre', 'az_spre', 'temp_spre']]
     else:
-        df_spre = pd.DataFrame(columns=['elapsed_sec'])
+        df_spre = pd.DataFrame(columns=['elapsed_us'])
     pbar.update(1)
 
     # ==========================================
@@ -55,21 +93,21 @@ def main():
     # ==========================================
     if os.path.exists(bno_path):
         df_bno = pd.read_csv(bno_path)
-        df_bno = df_bno.iloc[1:].reset_index(drop=True)
+        df_bno = df_bno.iloc[1:-1].reset_index(drop=True)
         
         df_bno['micros_diff'] = df_bno['micros'].diff()
         df_bno.loc[df_bno['micros_diff'] < 0, 'micros_diff'] += 4294967296
         df_bno['micros_diff'] = df_bno['micros_diff'].fillna(0)
-        df_bno['elapsed_sec'] = df_bno['micros_diff'].cumsum() / 1000000.0
+        df_bno['elapsed_us'] = df_bno['micros_diff'].cumsum().astype(int)
         
         df_bno = df_bno.rename(columns={ # type: ignore
             'gx': 'gx_bno', 'gy': 'gy_bno', 'gz': 'gz_bno',
             'ax': 'ax_bno', 'ay': 'ay_bno', 'az': 'az_bno',
             'temp': 'temp_bno'
         })
-        df_bno = df_bno[['elapsed_sec', 'gx_bno', 'gy_bno', 'gz_bno', 'ax_bno', 'ay_bno', 'az_bno', 'temp_bno']]
+        df_bno = df_bno[['elapsed_us', 'gx_bno', 'gy_bno', 'gz_bno', 'ax_bno', 'ay_bno', 'az_bno', 'temp_bno']]
     else:
-        df_bno = pd.DataFrame(columns=['elapsed_sec'])
+        df_bno = pd.DataFrame(columns=['elapsed_us'])
     pbar.update(1)
 
     # ==========================================
@@ -87,30 +125,30 @@ def main():
     # 5. Merge Dataframes using merge_asof
     # ==========================================
     # Use DMU (1000Hz) as base if available, otherwise fallback to Spresense
-    if not df_dmu.empty and df_dmu['elapsed_sec'].notna().any():
-        df_dmu = df_dmu.sort_values('elapsed_sec')
+    if not df_dmu.empty and df_dmu['elapsed_us'].notna().any():
+        df_dmu = df_dmu.sort_values('elapsed_us')
         if not df_spre.empty:
-            df_spre = df_spre.sort_values('elapsed_sec')
-            df_merged = pd.merge_asof(df_dmu, df_spre, on='elapsed_sec', direction='nearest', tolerance=0.01)
+            df_spre = df_spre.sort_values('elapsed_us')
+            df_merged = pd.merge_asof(df_dmu, df_spre, on='elapsed_us', direction='nearest', tolerance=10000)  # Tolerance in microseconds
         else:
             df_merged = df_dmu
             
         if not df_bno.empty:
-            df_bno = df_bno.sort_values('elapsed_sec')
-            df_merged = pd.merge_asof(df_merged, df_bno, on='elapsed_sec', direction='nearest', tolerance=0.05)
+            df_bno = df_bno.sort_values('elapsed_us')
+            df_merged = pd.merge_asof(df_merged, df_bno, on='elapsed_us', direction='nearest', tolerance=50000)  # Tolerance in microseconds
     else:
         if not df_spre.empty:
-            df_spre = df_spre.sort_values('elapsed_sec')
+            df_spre = df_spre.sort_values('elapsed_us')
             if not df_bno.empty:
-                df_bno = df_bno.sort_values('elapsed_sec')
-                df_merged = pd.merge_asof(df_spre, df_bno, on='elapsed_sec', direction='nearest', tolerance=0.05)
+                df_bno = df_bno.sort_values('elapsed_us')
+                df_merged = pd.merge_asof(df_spre, df_bno, on='elapsed_us', direction='nearest', tolerance=50000)
             else:
                 df_merged = df_spre
         else:
             df_merged = df_bno
 
     # Select final columns (9 gyro elements + temperatures)
-    final_cols = ['elapsed_sec']
+    final_cols = ['elapsed_us']
     if 'gx_dmu' in df_merged.columns: final_cols.extend(['gx_dmu', 'gy_dmu', 'gz_dmu', 'temp_dmu'])
     if 'gx_spre' in df_merged.columns: final_cols.extend(['gx_spre', 'gy_spre', 'gz_spre', 'temp_spre'])
     if 'gx_bno' in df_merged.columns: final_cols.extend(['gx_bno', 'gy_bno', 'gz_bno', 'temp_bno'])
