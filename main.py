@@ -150,7 +150,7 @@ def main():
     p_bno.start()
 
     # --- Serial Warmup ---
-    WARMUP_SECONDS = 5
+    WARMUP_SECONDS = 10
     print(f"[INFO] Letting sensors boot and stabilize for {WARMUP_SECONDS} seconds...")
     time.sleep(WARMUP_SECONDS)
     
