@@ -3,6 +3,7 @@ import multiprocessing
 import serial
 import time
 import os
+import subprocess
 from datetime import datetime
 
 # ==========================================
@@ -24,6 +25,7 @@ CSV_HEADER = b"micros,step,gx,gy,gz,ax,ay,az,temp\n"
 # ==========================================
 def logger_worker(port, baudrate, filepath, stop_event, record_event, buffer_size, header=None):
     try:
+        subprocess.run(["stty", "-F", port, "-hupcl"], capture_output=True)
         ser = serial.Serial()
         ser.port = port
         ser.baudrate = baudrate
