@@ -33,6 +33,10 @@ def logger_worker(port, baudrate, filepath, stop_event, record_event, buffer_siz
         ser.timeout = 0
         with ser, open(filepath, 'wb') as f:
             
+            ser.dtr = False
+            time.sleep(0.1)
+            ser.dtr = True
+            
             if header:
                 f.write(header)
                 f.flush()
