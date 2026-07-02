@@ -78,11 +78,21 @@ def main():
         df_spre['micros_diff'] = df_spre['micros_diff'].fillna(0)
         df_spre['elapsed_us'] = df_spre['micros_diff'].cumsum().astype(int)
         
+        df_spre['gx'] = -df_spre['gx']
+        df_spre['gy'] = -df_spre['gy']
+        df_spre['gz'] = -df_spre['gz']
+        
         df_spre = df_spre.rename(columns={  # type: ignore
-            'gx': 'gx_spre', 'gy': 'gy_spre', 'gz': 'gz_spre',
-            'ax': 'ax_spre', 'ay': 'ay_spre', 'az': 'az_spre',
+            'gx': 'gy_spre', 'gy': 'gx_spre', 'gz': 'gz_spre',
+            'ax': 'ay_spre', 'ay': 'ax_spre', 'az': 'az_spre',
             'temp': 'temp_spre'
         })
+    
+        #rad to deg
+        df_spre['gx_spre'] = df_spre['gx_spre'] * 180 / 3.141592653589793
+        df_spre['gy_spre'] = df_spre['gy_spre'] * 180 / 3.141592653589793
+        df_spre['gz_spre'] = df_spre['gz_spre'] * 180 / 3.141592653589793
+        
         df_spre = df_spre[['elapsed_us', 'gx_spre', 'gy_spre', 'gz_spre', 'ax_spre', 'ay_spre', 'az_spre', 'temp_spre']]
     else:
         df_spre = pd.DataFrame(columns=['elapsed_us'])
@@ -99,6 +109,9 @@ def main():
         df_bno.loc[df_bno['micros_diff'] < 0, 'micros_diff'] += 4294967296
         df_bno['micros_diff'] = df_bno['micros_diff'].fillna(0)
         df_bno['elapsed_us'] = df_bno['micros_diff'].cumsum().astype(int)
+        
+        df_bno['gy'] = -df_bno['gy']
+        df_bno['gz'] = -df_bno['gz']
         
         df_bno = df_bno.rename(columns={ # type: ignore
             'gx': 'gx_bno', 'gy': 'gy_bno', 'gz': 'gz_bno',

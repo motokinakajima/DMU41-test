@@ -6,7 +6,7 @@
 Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x28, &Wire);
 
 uint16_t packet_counter = 0;
-unsigned long interval = 10000; 
+unsigned long interval = 50000; 
 unsigned long next_time = 0;
 
 void setup() {
